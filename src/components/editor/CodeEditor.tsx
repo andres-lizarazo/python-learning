@@ -77,7 +77,7 @@ export default function CodeEditor({
   return (
     <div className="overflow-hidden rounded-xl border border-white/10 bg-[#0a0a16]">
       {/* Window chrome */}
-      <div className="flex items-center gap-1.5 border-b border-white/10 px-3 py-2">
+      <div className="flex items-center gap-1.5 border-b border-white/10 px-3 py-2" aria-hidden>
         <span className="h-2.5 w-2.5 rounded-full bg-rose-400/70" />
         <span className="h-2.5 w-2.5 rounded-full bg-amber-400/70" />
         <span className="h-2.5 w-2.5 rounded-full bg-emerald-400/70" />

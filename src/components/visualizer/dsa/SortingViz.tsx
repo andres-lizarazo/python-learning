@@ -187,7 +187,7 @@ export default function SortingViz({
           );
         })}
       </div>
-      <div className="text-center text-sm text-slate-300">{frame.note}</div>
+      <div className="text-center text-sm text-slate-300" role="status" aria-live="polite">{frame.note}</div>
       <StepControls stepper={stepper} length={frames.length} label="Frame" />
     </VizShell>
   );

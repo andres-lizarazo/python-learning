@@ -95,7 +95,7 @@ export default function RecursionViz({
           );
         })}
       </div>
-      <div className="text-center text-sm text-slate-300">{frame.note}</div>
+      <div className="text-center text-sm text-slate-300" role="status" aria-live="polite">{frame.note}</div>
       <p className="text-center text-xs text-slate-500">
         Frames stack downward; the top frame (yellow) is currently executing. Green =
         returning a value.

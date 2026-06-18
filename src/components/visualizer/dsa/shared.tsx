@@ -47,7 +47,7 @@ interface ControlsProps {
 export function StepControls({ stepper, length, label }: ControlsProps) {
   const { idx, setIdx, playing, setPlaying, speed, setSpeed, atEnd } = stepper;
   return (
-    <div className="space-y-2">
+    <div className="space-y-2" role="group" aria-label="Animation controls">
       <div className="flex flex-wrap items-center gap-2">
         <button
           className="btn-ghost px-2.5"
@@ -85,6 +85,7 @@ export function StepControls({ stepper, length, label }: ControlsProps) {
         </button>
         <select
           className="select"
+          aria-label="Playback speed"
           value={speed}
           onChange={(e) => setSpeed(Number(e.target.value))}
         >
@@ -93,12 +94,13 @@ export function StepControls({ stepper, length, label }: ControlsProps) {
           <option value={350}>Fast</option>
           <option value={120}>Turbo</option>
         </select>
-        <span className="ml-auto text-xs text-slate-400">
+        <span className="ml-auto text-xs text-slate-400" aria-live="polite">
           {label ?? "Step"} {idx + 1}/{length}
         </span>
       </div>
       <input
         type="range"
+        aria-label={`Scrub ${(label ?? "step").toLowerCase()}s`}
         min={0}
         max={Math.max(0, length - 1)}
         value={idx}

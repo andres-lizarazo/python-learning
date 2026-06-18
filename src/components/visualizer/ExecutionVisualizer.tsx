@@ -163,6 +163,7 @@ export default function ExecutionVisualizer({ initialCode, title, draftKey }: Pr
                 </button>
                 <select
                   className="select"
+                  aria-label="Playback speed"
                   value={speed}
                   onChange={(e) => setSpeed(Number(e.target.value))}
                 >
@@ -179,6 +180,7 @@ export default function ExecutionVisualizer({ initialCode, title, draftKey }: Pr
             <div className="space-y-1">
               <input
                 type="range"
+                aria-label="Scrub execution steps"
                 min={0}
                 max={steps.length - 1}
                 value={idx}
@@ -188,7 +190,10 @@ export default function ExecutionVisualizer({ initialCode, title, draftKey }: Pr
                 }}
                 className="w-full accent-brand"
               />
-              <div className="flex justify-between text-xs text-slate-400">
+              <div
+                className="flex justify-between text-xs text-slate-400"
+                aria-live="polite"
+              >
                 <span>
                   Step {idx + 1} / {steps.length}
                 </span>
@@ -248,7 +253,11 @@ export default function ExecutionVisualizer({ initialCode, title, draftKey }: Pr
             <div className="border-b border-white/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400">
               Output so far
             </div>
-            <pre className="max-h-32 overflow-auto px-3 py-2 font-mono text-[13px] text-slate-100">
+            <pre
+              className="max-h-32 overflow-auto px-3 py-2 font-mono text-[13px] text-slate-100"
+              aria-live="polite"
+              aria-label="Program output so far"
+            >
               {current?.stdout || (
                 <span className="text-slate-500">— nothing printed yet —</span>
               )}

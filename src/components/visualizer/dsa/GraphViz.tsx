@@ -99,7 +99,13 @@ export default function GraphViz({
     <VizShell title={title ?? `Graph — ${traversal.toUpperCase()}`} caption={caption}>
       <div className="grid gap-3 md:grid-cols-[1fr_auto]">
         <div className="well overflow-auto p-2">
-          <svg width={280} height={240} className="mx-auto">
+          <svg
+            width={280}
+            height={240}
+            className="mx-auto"
+            role="img"
+            aria-label={`Graph ${traversal.toUpperCase()} traversal diagram`}
+          >
             <defs>
               <linearGradient id="gv-current" x1="0" y1="0" x2="1" y2="1">
                 <stop offset="0" stopColor="#fcd34d" />
@@ -183,7 +189,7 @@ export default function GraphViz({
           </div>
         </div>
       </div>
-      <div className="text-center text-sm text-slate-300">{frame.note}</div>
+      <div className="text-center text-sm text-slate-300" role="status" aria-live="polite">{frame.note}</div>
       <StepControls stepper={stepper} length={frames.length} />
     </VizShell>
   );

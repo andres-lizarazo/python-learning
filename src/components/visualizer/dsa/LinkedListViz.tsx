@@ -89,7 +89,7 @@ export default function LinkedListViz({
         })}
         <span className="text-sm text-slate-500">null</span>
       </div>
-      <div className="text-center text-sm text-slate-300">{frame.note}</div>
+      <div className="text-center text-sm text-slate-300" role="status" aria-live="polite">{frame.note}</div>
       <StepControls stepper={stepper} length={frames.length} label="Op" />
     </VizShell>
   );

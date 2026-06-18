@@ -22,8 +22,12 @@ export default function OutputConsole({
         </span>
         {running && <span className="pill text-accent-cyan">running…</span>}
       </div>
-      <pre className="max-h-64 overflow-auto px-3 py-2 font-mono text-[13px] leading-relaxed">
-        {empty && <span className="text-slate-600">{placeholder}</span>}
+      <pre
+        className="max-h-64 overflow-auto px-3 py-2 font-mono text-[13px] leading-relaxed"
+        aria-live="polite"
+        aria-label="Program output"
+      >
+        {empty && <span className="text-slate-400">{placeholder}</span>}
         {stdout && <span className="text-slate-100">{stdout}</span>}
         {stderr && <span className="text-brand-red">{stderr}</span>}
       </pre>

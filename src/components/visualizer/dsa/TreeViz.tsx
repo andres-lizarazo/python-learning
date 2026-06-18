@@ -100,7 +100,13 @@ export default function TreeViz({
   return (
     <VizShell title={title ?? "Binary Search Tree"} caption={caption}>
       <div className="well overflow-auto p-3">
-        <svg width={W} height={H} className="mx-auto">
+        <svg
+          width={W}
+          height={H}
+          className="mx-auto"
+          role="img"
+          aria-label={`Binary search tree ${traversal} traversal diagram`}
+        >
           <defs>
             <linearGradient id="tv-visited" x1="0" y1="0" x2="1" y2="1">
               <stop offset="0" stopColor="#67e8f9" />
@@ -163,7 +169,7 @@ export default function TreeViz({
           })}
         </svg>
       </div>
-      <div className="text-center text-sm text-slate-300">{frame.note}</div>
+      <div className="text-center text-sm text-slate-300" role="status" aria-live="polite">{frame.note}</div>
       <StepControls stepper={stepper} length={frames.length} />
     </VizShell>
   );

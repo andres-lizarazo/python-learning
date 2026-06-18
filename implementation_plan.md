@@ -132,12 +132,14 @@ Prioritized, phase by phase. Each phase is independently shippable.
       (`progressStore.lastLesson`)
 - [x] Tests: Vitest unit tests for `lib/level.ts`, `lib/badges.ts`, and `lib/harness.ts`
       (extracted from ChallengeRunner) — 12 tests green; `npm test`
-- [ ] Playwright e2e smoke (boot Pyodide → run a snippet → solve a challenge) — still pending
-      (needs browser install)
+- [x] Playwright e2e smoke (`tests/e2e/smoke.spec.ts`, `npm run test:e2e`): home renders,
+      **boots Pyodide and runs Python in the browser**, and the challenge runner executes
+      tests — 3 tests green against the production preview
 - [x] PWA + offline: `vite-plugin-pwa` (autoUpdate) precaches the app and runtime-caches the
       Pyodide CDN + Google Fonts (CacheFirst) → offline-capable reloads
-- [x] Accessibility: skip-to-content link + focus moved to `<main>` on route change
-- [ ] Deeper a11y audit (ARIA on visualizers, full contrast pass) — still pending
+- [x] Accessibility: skip-to-content link + focus moved to `<main>` on route change; ARIA
+      labels on visualizer sliders/selects, `role="img"` + label on the tree/graph SVGs,
+      `aria-live` step/note/output regions, and contrast bumps
 
 ### Phase B — Deeper learning experience
 - [ ] Hints system per challenge (progressive reveal) + "explain my error" helper

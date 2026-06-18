@@ -232,6 +232,11 @@ print("Grade:", grade)`,
             { name: "10", assertion: "assert fizzbuzz(10) == 'Buzz'" },
             { name: "7", assertion: "assert fizzbuzz(7) == '7'", hidden: true },
           ],
+          hints: [
+            "Check divisibility by 15 FIRST — otherwise 15 matches the 3 case too early.",
+            "Use the modulo operator: `n % 3 == 0` means divisible by 3.",
+            "If none match, return the number as a string with `str(n)`.",
+          ],
           solution: `def fizzbuzz(n):
     if n % 15 == 0:
         return "FizzBuzz"
@@ -324,6 +329,11 @@ Loops inside loops multiply iterations. Watch the two counters move together.`,
             { name: "[1,2,3]", assertion: "assert total([1,2,3]) == 6" },
             { name: "empty", assertion: "assert total([]) == 0" },
             { name: "negatives", assertion: "assert total([-1, 1, -2]) == -2", hidden: true },
+          ],
+          hints: [
+            "Start with an accumulator set to 0 before the loop.",
+            "Loop over each value with `for x in nums:` and add it to the accumulator.",
+            "Return the accumulator after the loop ends (not inside it).",
           ],
           solution: `def total(nums):
     acc = 0

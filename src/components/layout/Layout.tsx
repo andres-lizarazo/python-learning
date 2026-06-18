@@ -3,6 +3,7 @@ import { Outlet, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import Aurora from "../ui/Aurora";
+import CommandPalette from "../ui/CommandPalette";
 import LevelUpToast from "../ui/LevelUpToast";
 import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
@@ -45,6 +46,7 @@ export default function Layout() {
         Skip to content
       </a>
       <Aurora />
+      <CommandPalette />
       <TopBar onToggleSidebar={() => setOpen((o) => !o)} />
 
       <AnimatePresence>

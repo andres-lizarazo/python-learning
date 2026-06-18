@@ -49,6 +49,11 @@ while lo < hi:
             { name: "ends", assertion: "assert two_sum_sorted([1,3,5,9], 10) == [0,3]" },
             { name: "mid", assertion: "assert two_sum_sorted([2,3,4], 6) == [0,2]", hidden: true },
           ],
+          hints: [
+            "Put one pointer at the start (`lo`) and one at the end (`hi`).",
+            "If the sum is too small, move `lo` right; if too big, move `hi` left.",
+            "When `nums[lo] + nums[hi] == target`, return `[lo, hi]`.",
+          ],
           solution: `def two_sum_sorted(nums, target):
     lo, hi = 0, len(nums) - 1
     while lo < hi:
@@ -512,6 +517,11 @@ print("fib(8) =", dp[n])`,
             { name: "n=3", assertion: "assert climb(3) == 3" },
             { name: "n=5", assertion: "assert climb(5) == 8" },
             { name: "n=0", assertion: "assert climb(0) == 1", hidden: true },
+          ],
+          hints: [
+            "The ways to reach step n = ways(n-1) + ways(n-2) — it's Fibonacci.",
+            "Track the last two values and roll them forward in a loop.",
+            "Base: there is 1 way to stand at step 0.",
           ],
           solution: `def climb(n):
     a, b = 1, 1

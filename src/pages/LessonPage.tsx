@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Check, ChevronRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, Bookmark, BookmarkCheck, Check, ChevronRight } from "lucide-react";
 import { getLesson, getModule, lessonSequence } from "../content/curriculum";
 import LessonRenderer from "../components/lesson/LessonRenderer";
 import { useProgressStore } from "../store/progressStore";
@@ -17,6 +17,10 @@ export default function LessonPage() {
   );
   const completedMap = useProgressStore((s) => s.completedLessons);
   const setLastLesson = useProgressStore((s) => s.setLastLesson);
+  const toggleBookmark = useProgressStore((s) => s.toggleBookmark);
+  const bookmarked = useProgressStore((s) =>
+    lessonId ? s.isBookmarked(lessonId) : false,
+  );
 
   // Remember this as the "continue where you left off" target.
   useEffect(() => {
@@ -65,9 +69,23 @@ export default function LessonPage() {
           className="mb-3 block h-1 w-16 rounded-full"
           style={{ background: moduleGradient(module.id) }}
         />
-        <h1 className="font-display text-3xl font-bold tracking-tight text-white">
-          {lesson.title}
-        </h1>
+        <div className="flex items-start justify-between gap-3">
+          <h1 className="font-display text-3xl font-bold tracking-tight text-white">
+            {lesson.title}
+          </h1>
+          <button
+            className="btn-ghost shrink-0"
+            onClick={() => toggleBookmark(lesson.id)}
+            aria-label={bookmarked ? "Remove bookmark" : "Bookmark this lesson"}
+          >
+            {bookmarked ? (
+              <BookmarkCheck className="h-4 w-4 text-accent-lime" />
+            ) : (
+              <Bookmark className="h-4 w-4" />
+            )}
+            <span className="hidden sm:inline">{bookmarked ? "Saved" : "Save"}</span>
+          </button>
+        </div>
         <p className="mb-7 mt-1 text-slate-400">{lesson.summary}</p>
       </div>
 

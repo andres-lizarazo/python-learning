@@ -1,4 +1,5 @@
-import { Flame, RotateCcw, Star, Target, Trophy } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Bookmark, Flame, RotateCcw, Star, Target, Trophy } from "lucide-react";
 import { curriculum, totalLessons } from "../content/curriculum";
 import { useProgressStore } from "../store/progressStore";
 import { levelProgress } from "../lib/level";
@@ -9,7 +10,15 @@ import Badge from "../components/ui/Badge";
 import Reveal from "../components/ui/Reveal";
 
 export default function Profile() {
-  const { completedLessons, solvedChallenges, xp, streakDays, reset } = useProgressStore();
+  const { completedLessons, solvedChallenges, bookmarks, xp, streakDays, reset } =
+    useProgressStore();
+
+  // Resolve bookmarked lesson ids to their module/lesson for links.
+  const bookmarked = curriculum.flatMap((m) =>
+    m.lessons
+      .filter((l) => bookmarks[l.id])
+      .map((l) => ({ moduleId: m.id, lessonId: l.id, title: l.title, moduleTitle: m.title })),
+  );
   const { level, pct, intoLevel, span } = levelProgress(xp);
   const lessonsDone = Object.keys(completedLessons).length;
   const solved = Object.keys(solvedChallenges).length;
@@ -101,6 +110,28 @@ export default function Profile() {
           </Reveal>
         ))}
       </div>
+
+      {/* Bookmarks */}
+      {bookmarked.length > 0 && (
+        <>
+          <h2 className="mb-3 mt-8 flex items-center gap-2 font-display text-lg font-bold text-white">
+            <Bookmark className="h-5 w-5 text-accent-lime" /> Saved lessons
+          </h2>
+          <div className="space-y-2">
+            {bookmarked.map((b) => (
+              <Link
+                key={b.lessonId}
+                to={`/learn/${b.moduleId}/${b.lessonId}`}
+                className="glass flex items-center gap-3 p-3 transition-shadow hover:glow-ring"
+              >
+                <Bookmark className="h-4 w-4 shrink-0 text-accent-lime" />
+                <span className="flex-1 truncate text-sm text-white">{b.title}</span>
+                <span className="text-xs text-slate-400">{b.moduleTitle}</span>
+              </Link>
+            ))}
+          </div>
+        </>
+      )}
 
       {/* Danger zone */}
       <div className="mt-10 border-t border-white/10 pt-5">

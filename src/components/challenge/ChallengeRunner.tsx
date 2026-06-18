@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Check, Eye, EyeOff, Play, RotateCcw, Trophy, X } from "lucide-react";
+import { Check, Eye, EyeOff, Lightbulb, Play, RotateCcw, Trophy, X } from "lucide-react";
 import CodeEditor from "../editor/CodeEditor";
 import { pyodideClient } from "../../pyodide/pyodideClient";
 import { usePyodideStore } from "../../store/pyodideStore";
@@ -9,6 +9,7 @@ import { useProgressStore } from "../../store/progressStore";
 import { celebrate } from "../../lib/confetti";
 import { useCodeDraft } from "../../lib/useCodeDraft";
 import { RESULT_MARKER, buildHarness } from "../../lib/harness";
+import { explainError } from "../../lib/explainError";
 import type { ChallengeBlock } from "../../types/lesson";
 
 interface Props {
@@ -35,6 +36,8 @@ export default function ChallengeRunner({ block, id }: Props) {
   const [runtimeMs, setRuntimeMs] = useState<number | null>(null);
   const [showSolution, setShowSolution] = useState(false);
   const [stderr, setStderr] = useState("");
+  const [revealedHints, setRevealedHints] = useState(0);
+  const hints = block.hints ?? [];
 
   useEffect(() => {
     boot();
@@ -120,6 +123,15 @@ export default function ChallengeRunner({ block, id }: Props) {
           >
             <RotateCcw className="h-4 w-4" /> Reset
           </button>
+          {revealedHints < hints.length && (
+            <button
+              className="btn-ghost"
+              onClick={() => setRevealedHints((n) => n + 1)}
+            >
+              <Lightbulb className="h-4 w-4 text-amber-300" />
+              {revealedHints === 0 ? "Hint" : `Hint ${revealedHints + 1}/${hints.length}`}
+            </button>
+          )}
           {block.solution && (
             <button className="btn-ghost" onClick={() => setShowSolution((s) => !s)}>
               {showSolution ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -133,6 +145,20 @@ export default function ChallengeRunner({ block, id }: Props) {
             <span className="ml-auto text-xs text-slate-400">{runtimeMs} ms</span>
           )}
         </div>
+
+        {revealedHints > 0 && (
+          <ul className="space-y-1.5">
+            {hints.slice(0, revealedHints).map((h, i) => (
+              <li
+                key={i}
+                className="flex items-start gap-2 rounded-lg border border-amber-300/20 bg-amber-400/5 px-3 py-2 text-sm text-amber-100"
+              >
+                <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />
+                <span>{h}</span>
+              </li>
+            ))}
+          </ul>
+        )}
 
         {stderr && (
           <pre className="overflow-auto rounded-lg border border-brand-red/40 bg-brand-red/10 px-3 py-2 font-mono text-xs text-brand-red">
@@ -169,6 +195,12 @@ export default function ChallengeRunner({ block, id }: Props) {
                     {!r.ok && r.error && (
                       <div className="truncate font-mono text-xs text-brand-red">
                         {r.error}
+                      </div>
+                    )}
+                    {!r.ok && explainError(r.error) && (
+                      <div className="mt-0.5 flex items-start gap-1.5 text-xs text-amber-200">
+                        <Lightbulb className="mt-0.5 h-3 w-3 shrink-0 text-amber-300" />
+                        {explainError(r.error)}
                       </div>
                     )}
                   </div>

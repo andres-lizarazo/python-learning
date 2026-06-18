@@ -141,11 +141,16 @@ Prioritized, phase by phase. Each phase is independently shippable.
       labels on visualizer sliders/selects, `role="img"` + label on the tree/graph SVGs,
       `aria-live` step/note/output regions, and contrast bumps
 
-### Phase B — Deeper learning experience
-- [ ] Hints system per challenge (progressive reveal) + "explain my error" helper
-- [ ] In-app search + command palette (⌘K) to jump to any lesson/module
-- [ ] Lesson bookmarks/notes; a "Review" mode (spaced repetition over solved challenges)
-- [ ] A standalone **Challenge bank / Practice** area (filter by topic & difficulty)
+### Phase B — Deeper learning experience (mostly DONE)
+- [x] Command palette (⌘K / Ctrl+K) + search over all lessons/modules/pages
+      (`components/ui/CommandPalette.tsx`); TopBar search affordance
+- [x] Hints per challenge (progressive reveal via `ChallengeBlock.hints`) + "explain my
+      error" friendly tips (`lib/explainError.ts`) shown on failed tests
+- [x] **Practice** / challenge bank page (`/practice`): all challenges with module + solved/
+      unsolved filters (covers the "review" need); links back to each lesson
+- [x] Lesson bookmarks (`progressStore.bookmarks`), toggle on the lesson header, surfaced on
+      the Profile page
+- [ ] Per-lesson notes + full spaced-repetition scheduling — still pending
 
 ### Phase C — Richer visualizers
 - [ ] Drive DSA visualizers from the learner's **own code** (instrument via the tracer)

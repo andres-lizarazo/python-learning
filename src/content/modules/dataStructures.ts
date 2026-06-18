@@ -270,6 +270,11 @@ q.popleft()          # 1  (FIFO)
             { name: "([)]", assertion: "assert is_balanced('([)]') is False" },
             { name: "empty", assertion: "assert is_balanced('') is True", hidden: true },
           ],
+          hints: [
+            "Use a stack (a list): push every opening bracket.",
+            "On a closing bracket, the top of the stack must be its matching opener.",
+            "At the end the stack must be empty — otherwise some opener was never closed.",
+          ],
           solution: `def is_balanced(s):
     pairs = {')': '(', ']': '[', '}': '{'}
     stack = []

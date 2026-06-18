@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Menu, Sparkles } from "lucide-react";
+import { Menu, Search, Sparkles, Target } from "lucide-react";
 import { useProgressStore } from "../../store/progressStore";
 import { usePyodideStore } from "../../store/pyodideStore";
 import Logo from "../ui/Logo";
@@ -21,6 +21,16 @@ export default function TopBar({ onToggleSidebar }: { onToggleSidebar: () => voi
         <Menu className="h-5 w-5" />
       </button>
       <Logo />
+
+      <button
+        className="ml-4 hidden items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-slate-400 transition-colors hover:border-white/20 hover:text-slate-200 lg:flex"
+        onClick={() => window.dispatchEvent(new Event("pylearn:open-command"))}
+        aria-label="Open search"
+      >
+        <Search className="h-3.5 w-3.5" />
+        Search…
+        <kbd className="pill border-white/10 bg-white/5 text-[10px]">⌘K</kbd>
+      </button>
 
       <div className="ml-auto flex items-center gap-2 text-sm">
         <span
@@ -45,6 +55,10 @@ export default function TopBar({ onToggleSidebar }: { onToggleSidebar: () => voi
         >
           <StreakFlame days={streak} />
           <XPBar xp={xp} />
+        </Link>
+        <Link to="/practice" className="btn-ghost hidden md:inline-flex">
+          <Target className="h-4 w-4 text-accent-lime" />
+          Practice
         </Link>
         <Link to="/playground" className="btn-ghost hidden sm:inline-flex">
           <Sparkles className="h-4 w-4 text-accent-cyan" />

@@ -7,6 +7,7 @@ import { persist } from "zustand/middleware";
 interface ProgressState {
   completedLessons: Record<string, true>;
   solvedChallenges: Record<string, true>;
+  bookmarks: Record<string, true>;
   xp: number;
   streakDays: number;
   lastActiveDay: string | null; // YYYY-MM-DD
@@ -15,6 +16,8 @@ interface ProgressState {
 
   isLessonComplete: (id: string) => boolean;
   isChallengeSolved: (id: string) => boolean;
+  isBookmarked: (id: string) => boolean;
+  toggleBookmark: (id: string) => void;
   completeLesson: (id: string, xp?: number) => void;
   solveChallenge: (id: string, xp?: number) => void;
   addXp: (amount: number) => void;
@@ -45,6 +48,7 @@ export const useProgressStore = create<ProgressState>()(
     (set, get) => ({
       completedLessons: {},
       solvedChallenges: {},
+      bookmarks: {},
       xp: 0,
       streakDays: 0,
       lastActiveDay: null,
@@ -53,6 +57,15 @@ export const useProgressStore = create<ProgressState>()(
 
       isLessonComplete: (id) => !!get().completedLessons[id],
       isChallengeSolved: (id) => !!get().solvedChallenges[id],
+      isBookmarked: (id) => !!get().bookmarks[id],
+
+      toggleBookmark: (id) =>
+        set((s) => {
+          const next = { ...s.bookmarks };
+          if (next[id]) delete next[id];
+          else next[id] = true;
+          return { bookmarks: next };
+        }),
 
       completeLesson: (id, xp = 20) =>
         set((s) => {
@@ -83,6 +96,7 @@ export const useProgressStore = create<ProgressState>()(
         set({
           completedLessons: {},
           solvedChallenges: {},
+          bookmarks: {},
           xp: 0,
           streakDays: 0,
           lastActiveDay: null,

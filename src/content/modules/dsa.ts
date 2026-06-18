@@ -339,6 +339,24 @@ compare their behavior.
           caption: "Partition around a pivot, then recurse on each side.",
         },
         {
+          kind: "user-viz",
+          title: "Animate your own sort",
+          starterCode: `def bubble_sort(nums):
+    a = list(nums)
+    record(a, note="start")
+    n = len(a)
+    for i in range(n - 1):
+        for j in range(n - 1 - i):
+            record(a, [j, j + 1], f"compare {a[j]} & {a[j + 1]}")
+            if a[j] > a[j + 1]:
+                a[j], a[j + 1] = a[j + 1], a[j]
+                record(a, [j, j + 1], "swap")
+    record(a, note="sorted")
+    return a
+
+bubble_sort([5, 2, 8, 1, 9, 3])`,
+        },
+        {
           kind: "challenge",
           title: "Implement insertion sort",
           prompt:

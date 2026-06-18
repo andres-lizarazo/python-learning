@@ -8,6 +8,7 @@ import {
 } from "../../pyodide/pyodideClient";
 import { usePyodideStore } from "../../store/pyodideStore";
 import { useCodeDraft } from "../../lib/useCodeDraft";
+import ObjectDiagram from "./ObjectDiagram";
 
 interface Props {
   initialCode: string;
@@ -37,6 +38,7 @@ export default function ExecutionVisualizer({ initialCode, title, draftKey }: Pr
   const [speed, setSpeed] = useState(600); // ms per step
   const [loading, setLoading] = useState(false);
   const [watch, setWatch] = useState(""); // comma-separated names to pin
+  const [view, setView] = useState<"table" | "objects">("table");
   const prevLocals = useRef<Record<string, string>>({});
 
   useEffect(() => {
@@ -249,13 +251,30 @@ export default function ExecutionVisualizer({ initialCode, title, draftKey }: Pr
               <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                 Variables {current && current.depth > 0 && `· depth ${current.depth}`}
               </span>
-              <input
-                value={watch}
-                onChange={(e) => setWatch(e.target.value)}
-                placeholder="watch (e.g. i, total)"
-                aria-label="Watch variables (comma-separated)"
-                className="ml-auto w-36 rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-xs text-slate-200 outline-none placeholder:text-slate-600"
-              />
+              <div className="ml-auto flex items-center gap-2">
+                {view === "table" && (
+                  <input
+                    value={watch}
+                    onChange={(e) => setWatch(e.target.value)}
+                    placeholder="watch (e.g. i, total)"
+                    aria-label="Watch variables (comma-separated)"
+                    className="w-32 rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-xs text-slate-200 outline-none placeholder:text-slate-600"
+                  />
+                )}
+                <div className="flex overflow-hidden rounded-md border border-white/10">
+                  {(["table", "objects"] as const).map((v) => (
+                    <button
+                      key={v}
+                      onClick={() => setView(v)}
+                      className={`px-2 py-0.5 text-[11px] capitalize transition-colors ${
+                        view === v ? "bg-white/10 text-white" : "text-slate-400 hover:bg-white/5"
+                      }`}
+                    >
+                      {v}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
             <div className="max-h-56 overflow-auto p-2">
               {!current && (
@@ -263,14 +282,17 @@ export default function ExecutionVisualizer({ initialCode, title, draftKey }: Pr
                   Press <b>Visualize</b> then step through to watch variables change.
                 </p>
               )}
-              {current && visibleLocals.length === 0 && (
+              {current && view === "objects" && (
+                <ObjectDiagram refs={current.refs ?? {}} heap={current.heap ?? {}} />
+              )}
+              {current && view === "table" && visibleLocals.length === 0 && (
                 <p className="px-1 py-2 text-sm text-slate-500">
                   {watched.length > 0
                     ? "No watched variables in scope here."
                     : "No local variables yet at this line."}
                 </p>
               )}
-              {current && visibleLocals.length > 0 && (
+              {current && view === "table" && visibleLocals.length > 0 && (
                 <table className="w-full text-sm">
                   <tbody>
                     {visibleLocals.map(([name, info]) => (

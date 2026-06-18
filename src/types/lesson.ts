@@ -10,6 +10,7 @@ export type BlockKind =
   | "runnable"
   | "visualized"
   | "dsa-viz"
+  | "user-viz"
   | "challenge"
   | "quiz";
 
@@ -76,6 +77,17 @@ export interface TestCase {
   hidden?: boolean;
 }
 
+/**
+ * The learner writes an algorithm that calls `record(arr, active, note)` to emit
+ * animation frames; PyLearn animates them as bars. "Visualize your own code."
+ */
+export interface UserVizBlock {
+  kind: "user-viz";
+  title?: string;
+  starterCode: string;
+  packages?: string[];
+}
+
 /** CodeSignal-style coding challenge. */
 export interface ChallengeBlock {
   kind: "challenge";
@@ -111,6 +123,7 @@ export type Block =
   | RunnableBlock
   | VisualizedBlock
   | DsaVizBlock
+  | UserVizBlock
   | ChallengeBlock
   | QuizBlock;
 

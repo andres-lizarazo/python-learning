@@ -8,6 +8,18 @@ export interface RunResult {
   plots: string[]; // base64 PNGs
 }
 
+/** A value cell in the reference diagram: a primitive (shown inline) or a heap ref. */
+export type DiagramCell =
+  | { t: "num" | "str" | "bool" | "none"; v: string }
+  | { t: "ref"; id: number };
+
+export interface HeapNode {
+  kind: "list" | "tuple" | "dict" | "set";
+  /** list/tuple: DiagramCell[]; dict: [keyRepr, DiagramCell][]; set: string[]. */
+  items: DiagramCell[] | [string, DiagramCell][] | string[];
+  more: number;
+}
+
 export interface TraceStep {
   line: number;
   event: "line" | "return";
@@ -16,6 +28,10 @@ export interface TraceStep {
   /** Function names currently on the call stack (bottom → top). */
   stack: string[];
   locals: Record<string, { repr: string; kind: string }>;
+  /** Variable name → value cell (for the object/reference diagram). */
+  refs: Record<string, DiagramCell>;
+  /** Heap objects addressed by id (string-keyed in JSON). */
+  heap: Record<string, HeapNode>;
   stdout: string;
 }
 

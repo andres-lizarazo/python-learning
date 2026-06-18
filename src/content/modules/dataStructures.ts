@@ -51,6 +51,18 @@ nums.sort(reverse=True)
 print("sorted desc:", nums)`,
         },
         {
+          kind: "visualized",
+          title: "Aliasing — switch to the Objects view!",
+          code: `a = [1, 2, 3]
+b = a            # b points to the SAME list as a
+b.append(4)      # this also changes a!
+c = a[:]         # c is a separate copy
+c.append(99)
+print("a:", a)
+print("b:", b)
+print("c:", c)`,
+        },
+        {
           kind: "challenge",
           title: "Second largest",
           prompt:

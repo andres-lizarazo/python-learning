@@ -157,17 +157,20 @@ Prioritized, phase by phase. Each phase is independently shippable.
       the Profile page
 - [ ] Per-lesson notes + full spaced-repetition scheduling — still pending
 
-### Phase C — Richer visualizers (DONE except where noted)
+### Phase C — Richer visualizers (DONE)
 - [x] Execution Visualizer: **call-stack panel** (tracer captures the active call stack per
       step) + **watch/pin variables** (filter the variable table to named vars)
 - [x] New visualizers: **hash table** (chaining), **heap / priority queue** (tree + array,
       sift-up), **sliding window**, **backtracking** (subsets decision tree) — each wired
       into a lesson
-  > These remaining items are **fully local / client-side** (no infra needed) — just larger
-  > pieces of work:
-- [ ] Drive DSA visualizers from the learner's **own code** (instrument via the tracer)
-- [ ] Object/heap reference diagram in the Execution Visualizer (pythontutor-style)
+- [x] **Object/heap reference diagram** in the Execution Visualizer (Table ⟷ Objects toggle):
+      the tracer serializes structured values + object ids (with caps), so shared references
+      / aliasing are visible; demoed in the Lists lesson
+- [x] **Drive a visualizer from the learner's own code**: a `record(arr, active, note)` helper
+      captures frames that animate as bars (`user-viz` block); demoed in the Sorting lesson
 - [x] Weighted graphs + **Dijkstra** visualizer + lesson
+
+> Phase C is now complete. Only Phase E (infra) remains on the roadmap.
 
 ### Phase D — More content (DONE)
 - [x] DSA: **Sliding Window**, **Heaps & Priority Queues**, **Backtracking**, **Tries**,

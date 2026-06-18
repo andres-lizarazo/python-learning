@@ -67,6 +67,66 @@ def _snapshot(local_vars):
     return out
 
 
+MAX_NODES = 60  # heap objects per step
+MAX_DIAGRAM_ITEMS = 30  # elements rendered per container
+
+
+def _diagram(local_vars):
+    """Structured snapshot for the reference diagram: primitives inline, containers as
+    heap nodes addressed by a small integer id (so shared references/aliasing show up)."""
+    heap = {}
+    id_map = {}
+    budget = [MAX_NODES]
+
+    def cell(v, depth=0):
+        if isinstance(v, bool):
+            return {"t": "bool", "v": repr(v)}
+        if isinstance(v, (int, float)):
+            return {"t": "num", "v": _safe_repr(v)}
+        if isinstance(v, str):
+            return {"t": "str", "v": _safe_repr(v)}
+        if v is None:
+            return {"t": "none", "v": "None"}
+        if isinstance(v, (list, tuple, dict, set)):
+            oid = id(v)
+            if oid in id_map:
+                return {"t": "ref", "id": id_map[oid]}
+            if budget[0] <= 0 or depth > 4:
+                return {"t": "str", "v": _safe_repr(v)}
+            idx = len(id_map)
+            id_map[oid] = idx
+            budget[0] -= 1
+            node = {"kind": _kind(v)}
+            if isinstance(v, (list, tuple)):
+                seq = list(v)
+                node["items"] = [cell(x, depth + 1) for x in seq[:MAX_DIAGRAM_ITEMS]]
+                node["more"] = max(0, len(seq) - MAX_DIAGRAM_ITEMS)
+            elif isinstance(v, dict):
+                items = []
+                for k in list(v.keys())[:MAX_DIAGRAM_ITEMS]:
+                    items.append([_safe_repr(k), cell(v[k], depth + 1)])
+                node["items"] = items
+                node["more"] = max(0, len(v) - MAX_DIAGRAM_ITEMS)
+            else:  # set
+                seq = list(v)
+                node["items"] = [_safe_repr(x) for x in seq[:MAX_DIAGRAM_ITEMS]]
+                node["more"] = max(0, len(seq) - MAX_DIAGRAM_ITEMS)
+            heap[idx] = node
+            return {"t": "ref", "id": idx}
+        return {"t": "str", "v": _safe_repr(v)}
+
+    refs = {}
+    for name, value in local_vars.items():
+        if name.startswith("__"):
+            continue
+        if callable(value) and not isinstance(value, (int, float, str)):
+            continue
+        if type(value).__name__ in ("module",):
+            continue
+        refs[name] = cell(value)
+    return refs, heap
+
+
 def trace_code(source):
     steps = []
     out_buffer = io.StringIO()
@@ -86,6 +146,7 @@ def trace_code(source):
             if len(steps) >= MAX_STEPS:
                 truncated = True
                 return None  # stop tracing this frame
+            refs, heap = _diagram(frame.f_locals)
             steps.append(
                 {
                     "line": frame.f_lineno,
@@ -94,6 +155,8 @@ def trace_code(source):
                     "depth": max(0, len(call_stack) - 1),
                     "stack": list(call_stack),
                     "locals": _snapshot(frame.f_locals),
+                    "refs": refs,
+                    "heap": heap,
                     "stdout": out_buffer.getvalue(),
                 }
             )

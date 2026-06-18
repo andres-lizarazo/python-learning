@@ -31,3 +31,16 @@ test("challenge runner executes tests in the browser", async ({ page }) => {
   await submit.click();
   await expect(page.getByText(/\d \/ 3 tests passed/)).toBeVisible({ timeout: 60_000 });
 });
+
+test("user-driven visualizer records & animates frames", async ({ page }) => {
+  await page.goto("/learn/dsa/sorting");
+
+  // Scope to the user-viz card (the page also has several canned sorting widgets).
+  const card = page.locator(".glass").filter({ hasText: "Animate your own sort" });
+  const runBtn = card.getByRole("button", { name: /Run & animate/ });
+  await expect(runBtn).toBeEnabled({ timeout: 90_000 });
+  await runBtn.click();
+
+  // After running, the recorded frames drive the bar animation + step controls.
+  await expect(card.getByText(/Frame 1\//)).toBeVisible({ timeout: 60_000 });
+});

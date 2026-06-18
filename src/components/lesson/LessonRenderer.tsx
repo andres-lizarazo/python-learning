@@ -4,6 +4,7 @@ import Quiz from "./blocks/Quiz";
 import RunnableCode from "./blocks/RunnableCode";
 import ExecutionVisualizer from "../visualizer/ExecutionVisualizer";
 import DsaViz from "../visualizer/dsa/DsaViz";
+import UserDrivenViz from "../visualizer/UserDrivenViz";
 import ChallengeRunner from "../challenge/ChallengeRunner";
 
 interface Props {
@@ -32,6 +33,10 @@ export default function LessonRenderer({ lessonId, blocks }: Props) {
             );
           case "dsa-viz":
             return <DsaViz key={i} block={block} />;
+          case "user-viz":
+            return (
+              <UserDrivenViz key={i} block={block} draftKey={`${lessonId}::${i}`} />
+            );
           case "challenge":
             return <ChallengeRunner key={i} block={block} id={`${lessonId}::${i}`} />;
           case "quiz":

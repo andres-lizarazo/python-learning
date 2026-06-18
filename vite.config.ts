@@ -7,6 +7,9 @@ import { fileURLToPath, URL } from "node:url";
 // Pyodide is loaded from a CDN at runtime (see index.html / worker.ts), so it is not
 // bundled. Web Workers are authored with `new Worker(new URL(...), { type: "module" })`.
 export default defineConfig({
+  // Local dev/preview serve at root ("/"). The deploy workflow sets DEPLOY_BASE to the
+  // GitHub Pages project subpath (e.g. "/python-learning/") so production assets resolve.
+  base: process.env.DEPLOY_BASE || "/",
   plugins: [
     react(),
     VitePWA({
@@ -20,7 +23,9 @@ export default defineConfig({
         theme_color: "#070710",
         background_color: "#070710",
         display: "standalone",
-        start_url: "/",
+        // Relative so the PWA works whether served at "/" (local) or a subpath (Pages).
+        start_url: ".",
+        scope: "./",
         icons: [
           { src: "icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any maskable" },
         ],

@@ -188,8 +188,10 @@ Prioritized, phase by phase. Each phase is independently shippable.
 - [ ] New module: **scikit-learn / intro ML** (train/test split, a simple model, metrics)
 - [ ] Add challenges to the visualization lessons; grow every starter idea into full depth
 
-### Phase E — Platform & accounts (🚧 deferred — needs infra, not local)
-- [ ] 🚧 Deploy the static app (Vercel/Netlify/GitHub Pages)
+### Phase E — Platform & accounts
+- [x] Deploy the static app to **GitHub Pages** via Actions (`.github/workflows/deploy.yml`,
+      `DEPLOY_BASE` subpath + router basename + `404.html` fallback). Local dev unchanged at
+      `localhost:5173/`. Live: https://andres-lizarazo.github.io/python-learning/
 - [ ] 🚧 Optional accounts + cross-device sync (e.g. Supabase) for progress/XP
 - [ ] 🚧 Leaderboard, daily goals, shareable profile/achievement cards
 - [ ] 🚧 Optional **FastAPI + Spark (Docker)** backend so PySpark lessons run for real

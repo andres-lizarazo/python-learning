@@ -113,6 +113,7 @@ export default function ExecutionVisualizer({ initialCode, title }: Props) {
             >
               {loading ? "Tracing…" : ready ? "▶ Visualize" : "Loading Python…"}
             </button>
+            {!ready && <span className="text-xs text-slate-400">{status}</span>}
             {steps.length > 0 && (
               <>
                 <button

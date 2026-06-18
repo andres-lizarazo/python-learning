@@ -12,15 +12,23 @@ const PYODIDE_VERSION = "0.26.4";
 const INDEX_URL = `https://cdn.jsdelivr.net/pyodide/v${PYODIDE_VERSION}/full/`;
 
 // Minimal typings — we treat the loaded interpreter loosely.
+type PyCallable = ((arg?: unknown) => unknown) & { destroy?: () => void };
 type Pyodide = {
   loadPackage: (names: string | string[]) => Promise<void>;
   runPython: (code: string) => unknown;
   pyimport: (mod: string) => any;
+  globals: { get: (name: string) => PyCallable };
 };
 
 let pyodide: Pyodide | null = null;
 let readyPromise: Promise<void> | null = null;
 const installed = new Set<string>();
+
+// Helper callables defined by BOOTSTRAP / tracer.py, fetched once (avoids leaking a
+// PyProxy on every message).
+let pyRun: PyCallable | null = null;
+let pyRenderPlots: PyCallable | null = null;
+let pyTrace: PyCallable | null = null;
 
 function post(message: Record<string, unknown>) {
   (self as unknown as Worker).postMessage(message);
@@ -82,6 +90,10 @@ async function ensureReady(): Promise<void> {
     status("Loading helpers…");
     pyodide!.runPython(BOOTSTRAP);
     pyodide!.runPython(tracerSource);
+    // Grab the helper callables once and reuse them for every request.
+    pyRun = pyodide!.globals.get("__pylearn_run");
+    pyRenderPlots = pyodide!.globals.get("__pylearn_render_plots");
+    pyTrace = pyodide!.globals.get("trace_to_json");
     status("ready");
   })();
   return readyPromise;
@@ -134,22 +146,16 @@ self.onmessage = async (e: MessageEvent) => {
 
     if (type === "run") {
       if (payload?.packages?.length) await ensurePackages(payload.packages);
-      const runFn = pyodide!.runPython(`__pylearn_run`) as (c: string) => string;
-      const raw = runFn(payload.code) as unknown as string;
-      const parsed = JSON.parse(raw as string);
-      let plots: string[] = [];
-      if (payload?.expectPlot) {
-        const plotFn = pyodide!.runPython(`__pylearn_render_plots`) as () => string;
-        plots = JSON.parse(plotFn() as unknown as string);
-      }
+      const parsed = JSON.parse(pyRun!(payload.code) as string);
+      // Always capture any matplotlib figures the code produced (and close them, so
+      // figures never carry over between runs). Empty when no plot was drawn.
+      const plots: string[] = JSON.parse(pyRenderPlots!() as string);
       post({ id, ok: true, result: { ...parsed, plots } });
       return;
     }
 
     if (type === "trace") {
-      const traceFn = pyodide!.runPython(`trace_to_json`) as (c: string) => string;
-      const raw = traceFn(payload.code) as unknown as string;
-      post({ id, ok: true, result: JSON.parse(raw as string) });
+      post({ id, ok: true, result: JSON.parse(pyTrace!(payload.code) as string) });
       return;
     }
 

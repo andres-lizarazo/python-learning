@@ -78,6 +78,8 @@ export interface ChallengeBlock {
   prompt: string; // markdown problem statement
   starterCode: string;
   tests: TestCase[];
+  /** Pyodide packages to ensure are installed before running (e.g. ["numpy"]). */
+  packages?: string[];
   /** Optional reference solution revealed via "Show solution". */
   solution?: string;
   /** XP awarded the first time the learner passes all tests. */

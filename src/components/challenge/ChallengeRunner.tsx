@@ -50,7 +50,7 @@ function buildHarness(userCode: string, tests: ChallengeBlock["tests"]): string 
 }
 
 export default function ChallengeRunner({ block, id }: Props) {
-  const { ready, boot } = usePyodideStore();
+  const { ready, boot, status } = usePyodideStore();
   const solveChallenge = useProgressStore((s) => s.solveChallenge);
   const alreadySolved = useProgressStore((s) => s.isChallengeSolved(id));
 
@@ -72,7 +72,7 @@ export default function ChallengeRunner({ block, id }: Props) {
     const t0 = performance.now();
     try {
       const harness = buildHarness(code, block.tests);
-      const res = await pyodideClient.runCode(harness);
+      const res = await pyodideClient.runCode(harness, { packages: block.packages });
       setRuntimeMs(Math.round(performance.now() - t0));
 
       // A compile/runtime error before tests ran.
@@ -144,7 +144,10 @@ export default function ChallengeRunner({ block, id }: Props) {
               {showSolution ? "Hide solution" : "Show solution"}
             </button>
           )}
-          {runtimeMs !== null && (
+          {running && status !== "ready" && (
+            <span className="text-xs text-slate-400">{status}</span>
+          )}
+          {runtimeMs !== null && !running && (
             <span className="ml-auto text-xs text-slate-400">{runtimeMs} ms</span>
           )}
         </div>

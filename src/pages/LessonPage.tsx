@@ -37,7 +37,9 @@ export default function LessonPage() {
       <h1 className="mt-2 text-2xl font-bold text-white">{lesson.title}</h1>
       <p className="mb-6 text-slate-400">{lesson.summary}</p>
 
-      <LessonRenderer lessonId={lesson.id} blocks={lesson.blocks} />
+      {/* key forces a fresh mount per lesson so editable code blocks reset
+          (otherwise React reuses component instances across route changes). */}
+      <LessonRenderer key={lesson.id} lessonId={lesson.id} blocks={lesson.blocks} />
 
       <div className="mt-8 flex flex-col gap-3 border-t border-ink-600/60 pt-5 sm:flex-row sm:items-center">
         <button

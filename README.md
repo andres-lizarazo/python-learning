@@ -26,11 +26,14 @@ interpreter runs client-side via [Pyodide](https://pyodide.org) (WebAssembly).
 | 🐍 Python Basics | **deep** | types, operators, strings, conditionals, **loops (visualized)**, functions, comprehensions, errors |
 | 🧱 Data Structures | **deep** | lists, tuples, dicts, sets, stacks/queues (with visualizers) |
 | 🧠 DSA — Algorithms | **deep** | two pointers, hashing, recursion, sorting (animated), binary search, linked lists, trees, graphs (BFS/DFS), intro DP |
-| 📦 Core Libraries | starter | collections, itertools, datetime, random, json |
-| 🔢 NumPy | starter | ndarrays, vectorization, boolean masking |
-| 🐼 Pandas | starter | DataFrames, cleaning, group-by, transforms |
-| 📈 Data Visualization | starter | matplotlib + seaborn (inline plots) |
+| 📦 Core Libraries | **deep** | collections/itertools, datetime/random/json, math/statistics, functools (+ challenges) |
+| 🔢 NumPy | **deep** | arrays & vectorization, indexing/reshaping, aggregations/broadcasting (+ challenges) |
+| 🐼 Pandas | **deep** | DataFrames, selecting/filtering, cleaning, group-by/agg, merge/join (+ challenges) |
+| 📈 Data Visualization | **deep** | matplotlib, customizing plots, plotting from pandas, seaborn (distribution & categorical) |
 | ⚡ PySpark | starter (conceptual) | Spark model, lazy eval, pandas↔PySpark cheat sheet |
+
+> Plots render **automatically** whenever your code draws a matplotlib/seaborn figure —
+> no `plt.show()` needed.
 
 > **Why PySpark is conceptual:** Spark needs a JVM and a cluster, which cannot run in
 > the browser. This module teaches the model and API (with a pandas↔Spark mapping) so

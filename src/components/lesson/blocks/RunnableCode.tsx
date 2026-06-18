@@ -55,7 +55,9 @@ export default function RunnableCode({ block }: { block: RunnableBlock }) {
           >
             ↺ Reset
           </button>
-          {!ready && <span className="text-xs text-slate-400">{status}</span>}
+          {(!ready || (running && status !== "ready")) && (
+            <span className="text-xs text-slate-400">{status}</span>
+          )}
         </div>
         <OutputConsole stdout={result?.stdout} stderr={result?.stderr} running={running} />
         {result?.plots && <PlotPanel plots={result.plots} />}

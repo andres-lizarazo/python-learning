@@ -17,7 +17,6 @@ export default function Playground() {
   const [code, setCode] = useState(DEFAULT);
   const [result, setResult] = useState<RunResult | null>(null);
   const [running, setRunning] = useState(false);
-  const [expectPlot, setExpectPlot] = useState(false);
 
   useEffect(() => {
     boot();
@@ -26,7 +25,8 @@ export default function Playground() {
   const run = async () => {
     setRunning(true);
     try {
-      setResult(await pyodideClient.runCode(code, { expectPlot }));
+      // matplotlib/seaborn figures are captured automatically when the code draws one.
+      setResult(await pyodideClient.runCode(code));
     } finally {
       setRunning(false);
     }
@@ -45,16 +45,18 @@ export default function Playground() {
           <button className="btn-primary" onClick={run} disabled={running || !ready}>
             {running ? "Running…" : ready ? "Run ▶" : "Loading Python…"}
           </button>
-          <label className="flex items-center gap-2 text-sm text-slate-300">
-            <input
-              type="checkbox"
-              checked={expectPlot}
-              onChange={(e) => setExpectPlot(e.target.checked)}
-              className="accent-brand"
-            />
-            Render matplotlib figure
-          </label>
-          {!ready && <span className="text-xs text-slate-400">{status}</span>}
+          <button
+            className="btn-ghost"
+            onClick={() => {
+              setCode(DEFAULT);
+              setResult(null);
+            }}
+          >
+            ↺ Reset
+          </button>
+          {(!ready || (running && status !== "ready")) && (
+            <span className="text-xs text-slate-400">{status}</span>
+          )}
         </div>
         <OutputConsole stdout={result?.stdout} stderr={result?.stderr} running={running} />
         {result?.plots && <PlotPanel plots={result.plots} />}

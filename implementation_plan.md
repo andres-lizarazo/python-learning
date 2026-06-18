@@ -49,12 +49,28 @@ execution visualization and animated DSA components. Local-first; deployment lat
 - [x] DSA (10 lessons): two pointers, hashing, recursion, sorting, binary search,
       linked lists, trees, graphs, intro DP — each pairing a visualizer + challenge
 
-### Content — starter modules (seeded, to expand)
-- [x] Core Libraries: collections/itertools, datetime/random/json
-- [x] NumPy: ndarrays & vectorization, boolean masking
-- [x] Pandas: DataFrames; cleaning, group-by, transforms
-- [x] Data Visualization: matplotlib, seaborn (inline PNG plots)
+### Content — deepened modules (now "deep")
+- [x] Core Libraries: collections/itertools, datetime/random/json, math/statistics,
+      functools — with challenges
+- [x] NumPy: arrays & vectorization, indexing/reshaping, aggregations/broadcasting —
+      with challenges
+- [x] Pandas: DataFrames, selecting/filtering, cleaning, group-by/agg, merge/join —
+      with challenges
+- [x] Data Visualization: matplotlib, customizing plots, pandas plotting, seaborn
+      (distribution + categorical/heatmaps)
+
+### Content — starter (conceptual)
 - [x] PySpark (conceptual): Spark model + quiz; pandas↔PySpark cheat sheet
+
+### Review pass (round 2)
+- [x] Fix: SortingViz bars rendered at 0-height → px-based bar heights with labels
+- [x] Fix: editable code persisted across lessons → `key={lesson.id}` remount in LessonPage
+- [x] Auto-render matplotlib/seaborn figures after every run (worker always calls
+      `__pylearn_render_plots`, which also closes figures); removed Playground checkbox
+- [x] Challenges support `packages` (numpy/pandas challenges install deps before running)
+- [x] Surface live install/boot status while a run/trace is in progress
+- [x] Reuse Pyodide helper proxies in the worker (no per-call PyProxy leak)
+- [x] Verified all new numpy/pandas/libraries challenges pass against real numpy/pandas
 
 ### Docs
 - [x] README.md (overview, curriculum, architecture, quickstart, authoring)
@@ -70,7 +86,6 @@ execution visualization and animated DSA components. Local-first; deployment lat
   focused; this is intentional.
 
 ## Stretch / Future 🔮
-- [ ] 🔮 Expand starter modules (NumPy/pandas/viz) to full "deep" depth + challenges
 - [ ] 🔮 Persist editor edits per lesson; "reset all progress" UI in settings
 - [ ] 🔮 More DSA: heaps/priority queues, Dijkstra on weighted graphs
 - [ ] 🔮 Instrument user code to drive DSA visualizers from their own implementations

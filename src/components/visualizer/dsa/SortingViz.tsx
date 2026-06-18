@@ -3,6 +3,10 @@ import { StepControls, VizShell, useStepper } from "./shared";
 
 type Algo = "bubble" | "insertion" | "selection" | "merge" | "quick";
 
+// Max bar height in px inside the h-56 (224px) chart area, leaving room for the
+// value label above and the index label below each bar.
+const BAR_AREA_PX = 168;
+
 interface Frame {
   arr: number[];
   active: number[]; // indices being compared/moved
@@ -167,13 +171,16 @@ export default function SortingViz({
             : isSorted
               ? "bg-brand-green"
               : "bg-brand-py";
+          // Bar height in px, leaving room for the value label below each bar.
+          const barPx = Math.max(6, Math.round((v / max) * BAR_AREA_PX));
           return (
             <div key={i} className="flex flex-1 flex-col items-center justify-end">
+              <span className="mb-1 text-[10px] font-semibold text-slate-300">{v}</span>
               <div
-                className={`w-full rounded-t transition-all duration-200 ${color}`}
-                style={{ height: `${(v / max) * 100}%` }}
+                className={`w-full rounded-t transition-all duration-300 ease-out ${color}`}
+                style={{ height: barPx }}
               />
-              <span className="mt-1 text-[10px] text-slate-400">{v}</span>
+              <span className="mt-1 text-[10px] text-slate-500">{i}</span>
             </div>
           );
         })}

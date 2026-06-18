@@ -192,6 +192,16 @@ Prioritized, phase by phase. Each phase is independently shippable.
 - [x] Deploy the static app to **GitHub Pages** via Actions (`.github/workflows/deploy.yml`,
       `DEPLOY_BASE` subpath + router basename + `404.html` fallback). Local dev unchanged at
       `localhost:5173/`. Live: https://andres-lizarazo.github.io/python-learning/
+
+> **Decision (2026-06-18): keep it personal-study / local-only for now.** Progress (XP, streak,
+> completion, bookmarks, editor drafts) lives in each visitor's browser `localStorage` — it is
+> **per-browser and private**: every visitor has their own independent progress, nothing is
+> shared across people, and nothing syncs across a user's devices. This is intentional for a
+> no-friction personal study tool. **To revisit later** (each needs work):
+> - **Export/Import profile** (no backend): a code/URL to carry your own progress between your
+>   devices manually. Fully local-doable.
+> - **Accounts + cloud sync + leaderboard** (needs a backend, e.g. Supabase/Firebase): real
+>   multi-user, cross-device progress and a shared leaderboard. Deferred until we choose to.
 - [ ] 🚧 Optional accounts + cross-device sync (e.g. Supabase) for progress/XP
 - [ ] 🚧 Leaderboard, daily goals, shareable profile/achievement cards
 - [ ] 🚧 Optional **FastAPI + Spark (Docker)** backend so PySpark lessons run for real

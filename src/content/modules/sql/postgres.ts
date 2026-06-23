@@ -1852,5 +1852,349 @@ ORDER BY name;`,
         },
       ],
     },
+
+    // ───────────────────────────────────────────────────── 24. Pivot & Unpivot
+    {
+      id: "pivot-unpivot",
+      title: "Pivot & Unpivot",
+      summary:
+        "Rotate rows into columns and back — the portable FILTER/CASE pivot, the crosstab caveat, and unpivot with VALUES + LATERAL.",
+      minutes: 14,
+      blocks: [
+        {
+          kind: "prose",
+          markdown: `## Pivot: rows → columns
+
+"Pivoting" turns row values into columns — e.g. one column per status. The **portable** way (works
+everywhere, no extensions) is **conditional aggregation**: \`SUM(...) FILTER (WHERE …)\` (or
+\`SUM(CASE WHEN … THEN … END)\`), one expression per target column.
+
+> **crosstab():** Postgres also ships a \`crosstab()\` function in the \`tablefunc\` **extension**
+> (\`CREATE EXTENSION tablefunc\`). It's terser but needs the extension installed (it isn't here, and
+> often isn't in managed setups), and the column list must be declared up front. For interviews and
+> portability, **reach for \`FILTER\` first.**`,
+        },
+        {
+          kind: "sql-runnable",
+          title: "Pivot revenue by status, per quarter (FILTER)",
+          sql: `SELECT
+    date_trunc('quarter', created_at)::date        AS quarter,
+    SUM(total) FILTER (WHERE status = 'paid')      AS paid,
+    SUM(total) FILTER (WHERE status = 'refunded')  AS refunded,
+    SUM(total) FILTER (WHERE status = 'pending')   AS pending,
+    SUM(total)                                     AS gross
+FROM orders
+GROUP BY 1
+ORDER BY 1;`,
+        },
+        {
+          kind: "prose",
+          markdown: `## Unpivot: columns → rows
+
+The reverse — a wide table (one column per quarter) into tall \`(key, value)\` rows — is cleanest with
+\`CROSS JOIN LATERAL (VALUES …)\` (or \`unnest(ARRAY[…])\`). Each source row is paired with one row per
+column you list.`,
+        },
+        {
+          kind: "sql-runnable",
+          title: "Unpivot a wide quarterly table",
+          sql: `DROP TABLE IF EXISTS q_sales;
+CREATE TABLE q_sales (region text, q1 numeric, q2 numeric, q3 numeric, q4 numeric);
+INSERT INTO q_sales VALUES ('North',10,20,30,40), ('South',5,15,25,35);
+
+SELECT region, v.quarter, v.amount
+FROM q_sales
+CROSS JOIN LATERAL (VALUES
+    ('q1', q1), ('q2', q2), ('q3', q3), ('q4', q4)
+) AS v(quarter, amount)
+ORDER BY region, quarter;`,
+        },
+        {
+          kind: "sql-challenge",
+          title: "Order counts per status, in one row",
+          prompt:
+            "Pivot the orders into a single row with three columns — `paid`, `pending`, `refunded` — each the **count** of orders with that status.",
+          starterSql:
+            "SELECT\n  -- COUNT(*) FILTER (WHERE status = 'paid')   AS paid,\n  -- ... pending, refunded\nFROM orders;",
+          solution:
+            "SELECT COUNT(*) FILTER (WHERE status = 'paid') AS paid, COUNT(*) FILTER (WHERE status = 'pending') AS pending, COUNT(*) FILTER (WHERE status = 'refunded') AS refunded FROM orders;",
+          hints: ["One `COUNT(*) FILTER (WHERE status = '…')` per column; no GROUP BY needed."],
+          xp: 70,
+        },
+      ],
+    },
+
+    // ──────────────────────────────── 25. Statistics, Percentiles & Histograms
+    {
+      id: "statistics-distributions",
+      title: "Statistics, Percentiles & Histograms",
+      summary:
+        "Median two ways (incl. without PERCENTILE_CONT), percent_rank vs cume_dist, mode, and width_bucket histograms.",
+      minutes: 16,
+      blocks: [
+        {
+          kind: "prose",
+          markdown: `## Median — the clean way and the "no percentile" way
+
+The clean way is the ordered-set aggregate \`PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY x)\`. But
+interviewers love asking for the median **without** it — to see if you understand the definition. The
+trick: number the rows, count them, and average the **middle one or two**:
+
+- Odd count → one middle row at \`(n+1)/2\`.
+- Even count → average the two middle rows.
+
+\`rn IN (FLOOR((c+1)/2.0), CEIL((c+1)/2.0))\` selects exactly those, and \`AVG\` finishes the job for both
+cases at once.`,
+        },
+        {
+          kind: "sql-runnable",
+          title: "Median price — both methods agree",
+          sql: `SELECT
+    (SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY price) FROM products) AS median_builtin,
+    (SELECT AVG(price)
+     FROM (
+        SELECT price,
+               ROW_NUMBER() OVER (ORDER BY price) AS rn,
+               COUNT(*)     OVER ()               AS c
+        FROM products
+     ) t
+     WHERE rn IN (FLOOR((c + 1) / 2.0), CEIL((c + 1) / 2.0))) AS median_manual;`,
+        },
+        {
+          kind: "prose",
+          markdown: `## Relative rank: percent_rank, cume_dist, mode
+
+- \`percent_rank()\` — where a row sits in the distribution, 0 to 1 (its rank minus 1, over n−1).
+- \`cume_dist()\` — cumulative distribution: fraction of rows at or below this one.
+- \`mode() WITHIN GROUP (ORDER BY x)\` — the most frequent value.`,
+        },
+        {
+          kind: "sql-runnable",
+          title: "Where does each price sit?",
+          sql: `SELECT
+    name,
+    price,
+    ROUND(percent_rank() OVER (ORDER BY price)::numeric, 2) AS pct_rank,
+    ROUND(cume_dist()    OVER (ORDER BY price)::numeric, 2) AS cume_dist
+FROM products
+ORDER BY price;`,
+        },
+        {
+          kind: "prose",
+          markdown: `## Histograms with width_bucket
+
+\`width_bucket(value, low, high, n)\` assigns a value to one of \`n\` equal-width buckets — the standard
+way to build a histogram in SQL.`,
+        },
+        {
+          kind: "sql-runnable",
+          title: "Price histogram (3 buckets, 0–1500)",
+          sql: `SELECT
+    width_bucket(price, 0, 1500, 3) AS bucket,
+    COUNT(*)                        AS products,
+    MIN(price)                      AS min_price,
+    MAX(price)                      AS max_price
+FROM products
+GROUP BY 1
+ORDER BY 1;`,
+        },
+        {
+          kind: "sql-challenge",
+          title: "Median order total — no PERCENTILE_CONT",
+          prompt:
+            "Return a single value `median` — the median of all `orders.total` — **without** using `PERCENTILE_CONT`/`PERCENTILE_DISC`. Use the ROW_NUMBER + COUNT trick.\n\n*(There are 6 orders, so the answer is the average of the 3rd and 4th totals.)*",
+          starterSql:
+            "SELECT AVG(total) AS median\nFROM (\n  -- number rows by total, and get the total count\n) t\nWHERE rn IN ( /* the middle one or two */ );",
+          solution:
+            "SELECT AVG(total) AS median FROM (SELECT total, ROW_NUMBER() OVER (ORDER BY total) AS rn, COUNT(*) OVER () AS c FROM orders) t WHERE rn IN (FLOOR((c + 1) / 2.0), CEIL((c + 1) / 2.0));",
+          hints: [
+            "Inner query: `ROW_NUMBER() OVER (ORDER BY total)` and `COUNT(*) OVER ()`.",
+            "Keep rows where `rn IN (FLOOR((c+1)/2.0), CEIL((c+1)/2.0))`, then `AVG`.",
+          ],
+          xp: 90,
+        },
+      ],
+    },
+
+    // ──────────────────────────────── 26. Data-Modifying CTEs & MERGE
+    {
+      id: "writable-ctes-merge",
+      title: "Data-Modifying CTEs & MERGE",
+      summary:
+        "Postgres power tools: writable CTEs (INSERT/UPDATE/DELETE … RETURNING inside WITH) for multi-step atomic writes, and MERGE for conditional upserts.",
+      minutes: 16,
+      blocks: [
+        {
+          kind: "prose",
+          markdown: `## Writable CTEs — multiple mutations in one statement
+
+A CTE can be an \`INSERT\`/\`UPDATE\`/\`DELETE … RETURNING\`. Chain them to do several writes **atomically**
+in one statement — e.g. move rows between tables, or insert a parent and its children together. All
+sub-statements see the **same snapshot**, so a writable CTE reads the table as it was *before* the
+statement ran.
+
+> Each runnable below **resets the sample DB first** (badge), so your writes don't leak.`,
+        },
+        {
+          kind: "sql-runnable",
+          title: "Insert a category and a product that references it — one statement",
+          resetBefore: true,
+          sql: `WITH new_cat AS (
+    INSERT INTO categories (name, parent_id)
+    VALUES ('Tablets', 1)
+    RETURNING id
+)
+INSERT INTO products (name, category_id, price)
+SELECT 'iPad', id, 599.00 FROM new_cat
+RETURNING name, category_id, price;`,
+        },
+        {
+          kind: "sql-runnable",
+          title: "Move rows between tables atomically (DELETE … then INSERT)",
+          sql: `-- Self-contained so it runs repeatedly.
+DROP TABLE IF EXISTS tasks;
+DROP TABLE IF EXISTS tasks_archive;
+CREATE TABLE tasks (id int, title text, done boolean);
+INSERT INTO tasks VALUES (1,'spec',true), (2,'build',false), (3,'ship',true);
+CREATE TABLE tasks_archive (LIKE tasks);
+
+-- One statement: delete the done tasks AND archive exactly those rows.
+WITH moved AS (
+    DELETE FROM tasks
+    WHERE done
+    RETURNING *
+)
+INSERT INTO tasks_archive
+SELECT * FROM moved;
+
+SELECT (SELECT COUNT(*) FROM tasks)         AS tasks_left,
+       (SELECT COUNT(*) FROM tasks_archive) AS archived;`,
+        },
+        {
+          kind: "prose",
+          markdown: `## MERGE — conditional upsert (Postgres 15+)
+
+\`MERGE\` matches a target against a source and runs different actions per case: \`WHEN MATCHED\` update/
+delete, \`WHEN NOT MATCHED\` insert. It's the SQL-standard sibling of \`INSERT … ON CONFLICT\` and handles
+update *and* insert *and* delete in one pass.`,
+        },
+        {
+          kind: "sql-runnable",
+          title: "Upsert a price list with MERGE",
+          resetBefore: true,
+          sql: `MERGE INTO products p
+USING (VALUES (1, 'iPhone 15 Pro', 1099.00),
+              (99, 'New Gadget',     49.00)) AS s(id, name, price)
+ON p.id = s.id
+WHEN MATCHED THEN
+    UPDATE SET name = s.name, price = s.price
+WHEN NOT MATCHED THEN
+    INSERT (id, name, category_id, price) VALUES (s.id, s.name, 3, s.price);
+
+SELECT id, name, price FROM products WHERE id IN (1, 99) ORDER BY id;`,
+        },
+        {
+          kind: "prose",
+          markdown: `> **MERGE vs ON CONFLICT:** \`ON CONFLICT\` is simpler and great for "insert-or-update on a unique key".
+> \`MERGE\` is more general (multiple match branches, deletes, a join-based source) but can't use
+> \`RETURNING\` and has different concurrency semantics. For a plain upsert, \`ON CONFLICT\` is usually the
+> pick; reach for \`MERGE\` when you need branching logic.`,
+        },
+        {
+          kind: "sql-challenge",
+          title: "Discount Apple products and return them — one statement",
+          prompt:
+            "In a **single statement** using a writable CTE, give every product tagged `'apple'` a 10% discount (round the new price to 2 decimals) and return their `name` and new `price`, ordered by `name`.",
+          starterSql:
+            "WITH upd AS (\n  UPDATE products SET price = -- 90%, rounded\n  WHERE 'apple' = ANY(tags)\n  RETURNING name, price\n)\nSELECT name, price FROM upd ORDER BY name;",
+          solution:
+            "WITH upd AS (UPDATE products SET price = ROUND(price * 0.9, 2) WHERE 'apple' = ANY(tags) RETURNING name, price) SELECT name, price FROM upd ORDER BY name;",
+          ordered: true,
+          hints: [
+            "`UPDATE … SET price = ROUND(price * 0.9, 2) WHERE 'apple' = ANY(tags) RETURNING name, price`.",
+            "Wrap it in `WITH upd AS (…)` and `SELECT … FROM upd ORDER BY name`.",
+          ],
+          xp: 90,
+        },
+      ],
+    },
+
+    // ──────────────────────────────── 27. Pagination & Performance
+    {
+      id: "pagination-performance",
+      title: "Pagination & Performance",
+      summary:
+        "Keyset (seek) pagination vs slow OFFSET, EXISTS vs IN, anti-joins, and reading the plan to confirm an index is used.",
+      minutes: 14,
+      blocks: [
+        {
+          kind: "prose",
+          markdown: `## OFFSET is a trap for deep pages
+
+\`ORDER BY … LIMIT 20 OFFSET 100000\` still **scans and discards** 100,000 rows — it gets slower the
+deeper you page. **Keyset / "seek" pagination** instead remembers the last row's sort key and asks for
+"the next rows after it", which an index can jump straight to:
+
+\`\`\`sql
+-- Page 1
+SELECT * FROM orders ORDER BY created_at, id LIMIT 20;
+-- Next page: pass the last row's (created_at, id) as the cursor
+SELECT * FROM orders
+WHERE (created_at, id) > ('2025-05-20', 2)   -- row-value comparison
+ORDER BY created_at, id
+LIMIT 20;
+\`\`\`
+
+The \`(a, b) > (x, y)\` **row-value comparison** is the clean way to seek on a composite sort key.`,
+        },
+        {
+          kind: "sql-runnable",
+          title: "Keyset pagination — the next orders after a cursor",
+          sql: `SELECT id, created_at, total
+FROM orders
+WHERE (created_at, id) > ('2025-05-01'::date, 0)
+ORDER BY created_at, id
+LIMIT 3;`,
+        },
+        {
+          kind: "prose",
+          markdown: `## EXISTS vs IN, and anti-joins
+
+- **\`EXISTS\` (semi-join)** stops at the first match and handles NULLs safely — prefer it for
+  "has at least one related row".
+- **\`NOT EXISTS\` (anti-join)** is the safe "has none" — unlike \`NOT IN\`, which returns nothing if the
+  subquery yields a NULL.
+- A \`LEFT JOIN … WHERE right.id IS NULL\` is the other anti-join form and is often the fastest.`,
+        },
+        {
+          kind: "sql-runnable",
+          title: "EXISTS semi-join + EXPLAIN the plan",
+          sql: `EXPLAIN
+SELECT name
+FROM users u
+WHERE EXISTS (SELECT 1 FROM orders o WHERE o.user_id = u.id);`,
+        },
+        {
+          kind: "prose",
+          markdown: `> **Tip:** to make keyset pagination fast, index the exact sort key
+> (\`CREATE INDEX ON orders (created_at, id)\`). Then the plan shows an **Index Scan** instead of a
+> \`Seq Scan\` + \`Sort\`, and each page is O(log n) to locate. Revisit the *Indexes & EXPLAIN* lesson for
+> reading plans.`,
+        },
+        {
+          kind: "sql-challenge",
+          title: "Keyset: the page after price 999",
+          prompt:
+            "Using keyset-style filtering (no `OFFSET`), return the products **priced above 999** as `name`, `price`, ordered by `price` ascending — i.e. the next page after the cursor price `999`.",
+          starterSql:
+            "SELECT name, price\nFROM products\n-- seek past the cursor price, then order + limit\n;",
+          solution:
+            "SELECT name, price FROM products WHERE price > 999 ORDER BY price ASC;",
+          ordered: true,
+          hints: ["`WHERE price > 999` is the seek; then `ORDER BY price`."],
+          xp: 70,
+        },
+      ],
+    },
   ],
 };

@@ -91,7 +91,17 @@ exercises. Local-first; deployment later.
 - [x] **Recursive CTEs — Manager Chains & Trees** lesson: walk hierarchies DOWN (org tree + path/depth)
       and UP (management chain / root ancestor), cycle-safety notes; 2 graded exercises on the seed
       `categories` hierarchy (depth, descendants-of-a-node)
-- [x] **PostgreSQL module** (23 lessons covering all 26 `concepts.md` sections): SELECT/
+- [x] **Pivot & Unpivot** lesson: portable FILTER/CASE pivot (+ crosstab/tablefunc caveat — not
+      bundled in PGlite), unpivot via `CROSS JOIN LATERAL (VALUES …)`; graded pivot exercise
+- [x] **Statistics, Percentiles & Histograms** lesson: median two ways (PERCENTILE_CONT vs the
+      ROW_NUMBER/COUNT trick — the requested "no percentile" drill), `percent_rank`/`cume_dist`,
+      `mode()`, `width_bucket` histograms; graded median-without-percentile exercise
+- [x] **Data-Modifying CTEs & MERGE** lesson: writable CTEs (`WITH … (INSERT/UPDATE/DELETE … RETURNING)`)
+      for atomic multi-step writes (insert parent+child; move rows), `MERGE` upsert (PG15+) with the
+      MERGE-vs-ON CONFLICT trade-off; graded writable-CTE exercise
+- [x] **Pagination & Performance** lesson: keyset/seek pagination via row-value comparison vs slow
+      OFFSET, EXISTS/semi-join vs IN, anti-joins, EXPLAIN to confirm index use; graded keyset exercise
+- [x] **PostgreSQL module** (27 lessons covering all 26 `concepts.md` sections): SELECT/
       WHERE, JOINs (+LATERAL), GROUP BY/HAVING/FILTER/percentiles, CASE, subqueries/EXISTS,
       CTEs (+recursive), window functions, set ops, INSERT/UPDATE/DELETE/UPSERT,
       transactions, DDL/constraints, indexes/EXPLAIN, arrays, JSONB, views/matviews,

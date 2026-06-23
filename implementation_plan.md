@@ -85,7 +85,13 @@ exercises. Local-first; deployment later.
       cumulative SUM of session-start flags), dedupe-keep-latest (ROW_NUMBER DESC), NTILE
       segmentation, and cohort retention (first-activity cohort + month-offset pivot) — all
       verified in PGlite, with 3 graded exercises
-- [x] **PostgreSQL module** (21 lessons covering all 26 `concepts.md` sections): SELECT/
+- [x] **Funnel Conversion** lesson: loose per-step funnel (distinct users + conversion via
+      FIRST_VALUE/LAG) and the **strict ordered** funnel (per-user MIN(ts) FILTER pivot + monotonic
+      timestamp checks), with the overcount gotcha demoed; graded seed funnel (registered→ordered→paid)
+- [x] **Recursive CTEs — Manager Chains & Trees** lesson: walk hierarchies DOWN (org tree + path/depth)
+      and UP (management chain / root ancestor), cycle-safety notes; 2 graded exercises on the seed
+      `categories` hierarchy (depth, descendants-of-a-node)
+- [x] **PostgreSQL module** (23 lessons covering all 26 `concepts.md` sections): SELECT/
       WHERE, JOINs (+LATERAL), GROUP BY/HAVING/FILTER/percentiles, CASE, subqueries/EXISTS,
       CTEs (+recursive), window functions, set ops, INSERT/UPDATE/DELETE/UPSERT,
       transactions, DDL/constraints, indexes/EXPLAIN, arrays, JSONB, views/matviews,

@@ -1599,5 +1599,258 @@ These run against the sample e-commerce DB (reset before each check). Order matt
         },
       ],
     },
+
+    // ─────────────────────────────────────────────────── 22. Funnel Conversion
+    {
+      id: "funnel-conversion",
+      title: "Funnel Conversion",
+      summary:
+        "Measure drop-off through a sequence of steps — loose vs. strict (ordered) funnels, conversion rates, and building a funnel from existing tables.",
+      minutes: 18,
+      blocks: [
+        {
+          kind: "prose",
+          markdown: `## What a funnel measures
+
+A **funnel** tracks how many users make it through an ordered sequence of steps —
+\`view → cart → checkout → purchase\` — and where they drop off. Two flavors come up in interviews:
+
+- **Loose funnel** — count distinct users who hit *each* step, independently. Simple, but it can
+  **overcount** late steps (someone might \`purchase\` without a recorded \`cart\`).
+- **Strict / ordered funnel** — a user only counts at step *k* if they completed every prior step
+  **in order** (by time). More faithful to "real" conversion.`,
+        },
+        {
+          kind: "sql-runnable",
+          title: "Loose funnel — users per step + conversion rates",
+          sql: `DROP TABLE IF EXISTS funnel_events;
+CREATE TABLE funnel_events (user_id int, step text, ts timestamptz);
+INSERT INTO funnel_events VALUES
+  (1,'view','2026-01-01 10:00'),(1,'cart','2026-01-01 10:05'),(1,'checkout','2026-01-01 10:08'),(1,'purchase','2026-01-01 10:10'),
+  (2,'view','2026-01-01 11:00'),(2,'cart','2026-01-01 11:02'),
+  (3,'view','2026-01-01 12:00'),
+  (4,'view','2026-01-02 09:00'),(4,'cart','2026-01-02 09:01'),(4,'checkout','2026-01-02 09:02'),(4,'purchase','2026-01-02 09:03'),
+  (5,'view','2026-01-02 10:00'),(5,'purchase','2026-01-02 10:01');   -- bought without cart/checkout!
+
+WITH step_users AS (
+    SELECT step,
+           COUNT(DISTINCT user_id) AS users,
+           CASE step WHEN 'view' THEN 1 WHEN 'cart' THEN 2
+                     WHEN 'checkout' THEN 3 WHEN 'purchase' THEN 4 END AS ord
+    FROM funnel_events
+    GROUP BY step
+)
+SELECT step, users,
+    ROUND(100.0 * users / FIRST_VALUE(users) OVER (ORDER BY ord), 1) AS pct_of_top,
+    ROUND(100.0 * users / LAG(users)        OVER (ORDER BY ord), 1) AS pct_of_prev
+FROM step_users
+ORDER BY ord;`,
+        },
+        {
+          kind: "prose",
+          markdown: `Spot the bug: \`purchase\` shows **3** users and \`pct_of_prev\` of **150%** — impossible for a real
+funnel. User 5 purchased with no \`cart\`/\`checkout\` row, so the independent per-step count overcounts.
+The **strict** funnel fixes this.
+
+## Strict funnel — enforce order with timestamps
+
+Pivot each user's **first** timestamp per step (\`MIN(ts) FILTER (WHERE step = …)\`), then a user counts
+at a step only if their timestamps are **monotonic** (each step at/after the previous).`,
+        },
+        {
+          kind: "sql-runnable",
+          title: "Strict ordered funnel",
+          sql: `WITH u AS (
+    SELECT user_id,
+        MIN(ts) FILTER (WHERE step = 'view')     AS t_view,
+        MIN(ts) FILTER (WHERE step = 'cart')     AS t_cart,
+        MIN(ts) FILTER (WHERE step = 'checkout') AS t_checkout,
+        MIN(ts) FILTER (WHERE step = 'purchase') AS t_purchase
+    FROM funnel_events
+    GROUP BY user_id
+)
+SELECT
+    COUNT(*) FILTER (WHERE t_view IS NOT NULL)                                                AS viewed,
+    COUNT(*) FILTER (WHERE t_cart     >= t_view)                                              AS carted,
+    COUNT(*) FILTER (WHERE t_checkout >= t_cart AND t_cart >= t_view)                         AS checked_out,
+    COUNT(*) FILTER (WHERE t_purchase >= t_checkout AND t_checkout >= t_cart AND t_cart >= t_view) AS purchased
+FROM u;`,
+        },
+        {
+          kind: "prose",
+          markdown: `Now \`purchased = 2\` (only users 1 and 4 went all the way in order) — user 5's out-of-order purchase
+is correctly excluded. \`NULL >= …\` is unknown, so missing steps fail the filter automatically.
+
+## You don't always need an events table
+
+A funnel is just **counts at successively stricter conditions**. You can build one straight from
+existing tables — which is exactly the next exercise.`,
+        },
+        {
+          kind: "sql-challenge",
+          title: "Signup → order → paid funnel",
+          prompt:
+            "Build a 3-stage funnel from the sample database and return `step` and `users` (the count), in funnel order:\n\n1. `registered` — all users.\n2. `ordered` — distinct users who placed **any** order.\n3. `paid` — distinct users with at least one **paid** order.\n\nOrder the rows registered → ordered → paid.",
+          starterSql:
+            "WITH funnel(step, users, ord) AS (\n  SELECT 'registered', (SELECT COUNT(*) FROM users), 1\n  -- UNION ALL the other two stages\n)\nSELECT step, users FROM funnel ORDER BY ord;",
+          solution:
+            "WITH funnel(step, users, ord) AS (SELECT 'registered', (SELECT COUNT(*) FROM users), 1 UNION ALL SELECT 'ordered', (SELECT COUNT(DISTINCT user_id) FROM orders), 2 UNION ALL SELECT 'paid', (SELECT COUNT(DISTINCT user_id) FROM orders WHERE status = 'paid'), 3) SELECT step, users FROM funnel ORDER BY ord;",
+          ordered: true,
+          hints: [
+            "Each stage is a scalar subquery: `(SELECT COUNT(DISTINCT user_id) FROM orders …)`.",
+            "Carry an `ord` column so the rows come out registered → ordered → paid.",
+          ],
+          xp: 80,
+        },
+        {
+          kind: "quiz",
+          question:
+            "Counting `COUNT(DISTINCT user_id)` per step independently can report MORE conversions at a late step than is real. Why?",
+          options: [
+            {
+              text: "It counts users who reached a step without completing the earlier steps in order",
+              correct: true,
+            },
+            { text: "COUNT(DISTINCT) is not supported in Postgres" },
+            { text: "Window functions can't be used on events tables" },
+            { text: "It always undercounts, never overcounts" },
+          ],
+          explanation:
+            "A per-step distinct count treats steps independently, so out-of-order or skipped-step events (e.g. a purchase with no cart) still count. A strict funnel enforces the ordering with per-user timestamps.",
+        },
+      ],
+    },
+
+    // ──────────────────────────────────── 23. Recursive CTEs — Manager Chains
+    {
+      id: "recursive-hierarchies",
+      title: "Recursive CTEs — Manager Chains & Trees",
+      summary:
+        "Walk hierarchies of unknown depth — org charts down (descendants) and management chains up (ancestors), with depth, paths, and cycle safety.",
+      minutes: 18,
+      blocks: [
+        {
+          kind: "prose",
+          markdown: `## Recursion for hierarchies
+
+When a table references itself (\`employees.manager_id → employees.id\`, \`categories.parent_id\`), you
+can't know the depth in advance — so you **recurse**. A recursive CTE has two parts joined by
+\`UNION ALL\`:
+
+1. **Anchor** — the starting rows (the roots, or one specific node).
+2. **Recursive member** — joins the table back to the CTE to fetch the next level, repeating until no
+   new rows appear.
+
+You can walk **down** (a manager's descendants) or **up** (an employee's chain to the CEO) — just flip
+which side of the join is the CTE.`,
+        },
+        {
+          kind: "sql-runnable",
+          title: "Org chart — walk DOWN from the top (depth + path)",
+          sql: `DROP TABLE IF EXISTS employees;
+CREATE TABLE employees (id int, name text, manager_id int);
+INSERT INTO employees VALUES
+  (1,'Alice',NULL),(2,'Bob',1),(3,'Carol',1),(4,'Dave',2),(5,'Eve',2),(6,'Frank',4);
+
+WITH RECURSIVE tree AS (
+    SELECT id, name, manager_id, name AS path, 0 AS depth          -- anchor: the CEO (no manager)
+    FROM employees
+    WHERE manager_id IS NULL
+  UNION ALL
+    SELECT e.id, e.name, e.manager_id,                              -- recursive: each report
+           t.path || ' > ' || e.name, t.depth + 1
+    FROM employees e
+    JOIN tree t ON t.id = e.manager_id
+)
+SELECT depth, path
+FROM tree
+ORDER BY path;`,
+        },
+        {
+          kind: "prose",
+          markdown: `## Walk UP — an employee's management chain
+
+Flip the join (\`e.id = chain.manager_id\`) and anchor on one employee to climb to the root. This is the
+"who are Frank's managers, all the way up?" question.`,
+        },
+        {
+          kind: "sql-runnable",
+          title: "Management chain above Frank (ancestors)",
+          sql: `WITH RECURSIVE chain AS (
+    SELECT id, name, manager_id, 0 AS level_up
+    FROM employees
+    WHERE name = 'Frank'                       -- anchor: the employee
+  UNION ALL
+    SELECT e.id, e.name, e.manager_id, c.level_up + 1
+    FROM employees e
+    JOIN chain c ON e.id = c.manager_id        -- step to THIS row's manager
+)
+SELECT level_up, name
+FROM chain
+ORDER BY level_up;`,
+        },
+        {
+          kind: "prose",
+          markdown: `## Same idea on the sample DB
+
+The sample \`categories\` table is a hierarchy too (\`parent_id\`). Walk **up** carrying the root, and
+every category learns which top-level section it belongs to.
+
+> **Cycle safety:** \`UNION ALL\` won't stop if the data has a loop (A manages B manages A). Guard with a
+> depth cap (\`WHERE depth < 100\`), track visited ids in an array (\`NOT id = ANY(path_ids)\`), or use
+> \`UNION\` (dedupes, but slower). Real org/category data is usually a clean tree.
+
+> **vs MySQL:** recursive CTEs need MySQL 8.0+; the \`WITH RECURSIVE\` syntax is the same.`,
+        },
+        {
+          kind: "sql-runnable",
+          title: "Each category's top-level root (walk up parent_id)",
+          sql: `WITH RECURSIVE up AS (
+    SELECT id, name, parent_id, name AS root
+    FROM categories
+    WHERE parent_id IS NULL
+  UNION ALL
+    SELECT c.id, c.name, c.parent_id, u.root
+    FROM categories c
+    JOIN up u ON c.parent_id = u.id
+)
+SELECT name, root
+FROM up
+ORDER BY name;`,
+        },
+        {
+          kind: "sql-challenge",
+          title: "Category depth",
+          prompt:
+            "Using a **recursive CTE**, return every category's `name` and its `depth` — top-level categories are depth `0`, their children depth `1`, and so on. Order by `depth`, then `name`.",
+          starterSql:
+            "WITH RECURSIVE tree AS (\n  -- anchor: top-level categories (parent_id IS NULL) at depth 0\n  UNION ALL\n  -- recursive: children, depth + 1\n)\nSELECT name, depth FROM tree ORDER BY depth, name;",
+          solution:
+            "WITH RECURSIVE tree AS (SELECT id, name, parent_id, 0 AS depth FROM categories WHERE parent_id IS NULL UNION ALL SELECT c.id, c.name, c.parent_id, t.depth + 1 FROM categories c JOIN tree t ON t.id = c.parent_id) SELECT name, depth FROM tree ORDER BY depth, name;",
+          ordered: true,
+          hints: [
+            "Anchor: `WHERE parent_id IS NULL` with `0 AS depth`.",
+            "Recursive: `JOIN tree t ON t.id = c.parent_id`, selecting `t.depth + 1`.",
+          ],
+          xp: 80,
+        },
+        {
+          kind: "sql-challenge",
+          title: "Everyone under a manager",
+          prompt:
+            "The sample DB doesn't have employees, so use `categories` as the tree: starting from **Electronics**, return the `name` of Electronics **and all categories beneath it** (its descendants, any depth). Order by `name`.\n\n*Pattern: recursive walk DOWN from one node.*",
+          starterSql:
+            "WITH RECURSIVE sub AS (\n  -- anchor: the 'Electronics' category\n  UNION ALL\n  -- recursive: its children\n)\nSELECT name FROM sub ORDER BY name;",
+          solution:
+            "WITH RECURSIVE sub AS (SELECT id, name, parent_id FROM categories WHERE name = 'Electronics' UNION ALL SELECT c.id, c.name, c.parent_id FROM categories c JOIN sub s ON c.parent_id = s.id) SELECT name FROM sub ORDER BY name;",
+          ordered: true,
+          hints: [
+            "Anchor on the single row `WHERE name = 'Electronics'`.",
+            "Recursive member: `JOIN sub s ON c.parent_id = s.id` to pull each level of children.",
+          ],
+          xp: 80,
+        },
+      ],
+    },
   ],
 };

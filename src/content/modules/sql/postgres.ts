@@ -2340,5 +2340,190 @@ WHERE EXISTS (SELECT 1 FROM orders o WHERE o.user_id = u.id);`,
         },
       ],
     },
+
+    // ─────────────────────────────── 28. Data Engineering & ETL Patterns
+    {
+      id: "etl-patterns",
+      title: "Data Engineering & ETL Patterns",
+      summary:
+        "The DE/ETL/BI patterns interviewers reuse — incremental load (watermark), SCD Type 2, calendar/date dimension, dynamic pivot — in real PostgreSQL (not T-SQL).",
+      minutes: 22,
+      blocks: [
+        {
+          kind: "prose",
+          markdown: `## Most "Advanced SQL Patterns" lists are SQL Server — here they are in Postgres
+
+Popular interview cheat-sheets are usually written in **T-SQL (SQL Server)**. The *ideas* port
+directly, but the **syntax doesn't**. Quick translation:
+
+| T-SQL (SQL Server) | PostgreSQL |
+|---|---|
+| \`DATEADD(DAY, n, d)\` | \`d + n * interval '1 day'\` |
+| \`DATEDIFF(MINUTE, a, b)\` | \`EXTRACT(epoch FROM b - a) / 60\` |
+| recursive CTE + \`OPTION(MAXRECURSION n)\` | recursive CTE (no cap needed) — or just \`generate_series\` |
+| \`PIVOT (… FOR col IN (…))\` | \`SUM(…) FILTER (WHERE col = …)\` (or \`crosstab\`) |
+| \`STRING_AGG(x, ',')\` | \`string_agg(x, ',')\` ✓ (same) / \`array_agg\` |
+| \`OFFSET 10 ROWS FETCH NEXT 10 ROWS ONLY\` | \`LIMIT 10 OFFSET 10\` (or keyset) |
+| \`OPENJSON(@json)\` | \`jsonb_array_elements\` / \`jsonb_to_recordset\` |
+| \`ISNULL(a,b)\` / \`GETDATE()\` | \`COALESCE(a,b)\` / \`now()\` |
+
+**Coverage map** — most of those "20 patterns" you already practiced here:
+
+| Pattern | Lesson |
+|---|---|
+| Gap & island, Top-N per group, Running total | *Window Functions*, *Advanced Workshop* |
+| Moving average, Sessionization, Dedupe/Latest record | *Analytics Patterns* |
+| Recursive hierarchy | *Recursive CTEs* |
+| Sequence generator, Calendar (date spine) | *String/Date Functions* (+ below) |
+| String aggregation, Find duplicates, Nth highest | *String Functions*, *GROUP BY*, *Interview Patterns* |
+| Lead/Lag, Pagination, Anti-join, MERGE, JSON parsing | *Window Functions*, *Pagination*, *Interview Patterns*, *MERGE*, *JSONB* |
+
+This lesson fills the remaining **ETL-flavored** gaps: incremental load, SCD Type 2, a real date
+dimension, and dynamic pivot.`,
+        },
+
+        {
+          kind: "prose",
+          markdown: `## 1. Incremental load (high-water-mark)
+
+The backbone of every incremental pipeline: only pull rows **newer than the last successful load**.
+Keep a watermark (the max timestamp loaded) and filter the source against it.`,
+        },
+        {
+          kind: "sql-runnable",
+          title: "Pull only rows past the watermark",
+          sql: `DROP TABLE IF EXISTS src;
+DROP TABLE IF EXISTS load_audit;
+CREATE TABLE src (id int, updated_at date);
+INSERT INTO src VALUES (1,'2026-01-01'), (2,'2026-02-01'), (3,'2026-03-01');
+CREATE TABLE load_audit (last_loaded date);
+INSERT INTO load_audit VALUES ('2026-01-15');   -- last successful load
+
+SELECT *
+FROM src
+WHERE updated_at > (SELECT MAX(last_loaded) FROM load_audit)
+ORDER BY id;`,
+        },
+
+        {
+          kind: "prose",
+          markdown: `## 2. SCD Type 2 — keep full history
+
+A **Slowly Changing Dimension Type 2** never overwrites: when an attribute changes, you **close** the
+current row (set \`valid_to\` / \`is_current = false\`) and **insert a new version**. A writable CTE does
+both atomically — the classic "latest record via \`rn = 1\`" only finds the current row; SCD2 stores the
+whole timeline.`,
+        },
+        {
+          kind: "sql-runnable",
+          title: "Apply a change as a new version (close + insert)",
+          sql: `DROP TABLE IF EXISTS dim_customer;
+CREATE TABLE dim_customer (
+    sk          serial PRIMARY KEY,
+    customer_id int, name text, city text,
+    valid_from  date, valid_to date, is_current boolean
+);
+INSERT INTO dim_customer (customer_id, name, city, valid_from, valid_to, is_current)
+VALUES (100, 'Alice', 'NYC', '2026-01-01', NULL, true);
+
+-- Alice moves to LA on 2026-06-01: close the old version, open a new one.
+WITH closed AS (
+    UPDATE dim_customer
+    SET valid_to = '2026-06-01', is_current = false
+    WHERE customer_id = 100 AND is_current
+    RETURNING customer_id
+)
+INSERT INTO dim_customer (customer_id, name, city, valid_from, valid_to, is_current)
+SELECT 100, 'Alice', 'LA', '2026-06-01', NULL, true
+FROM closed;
+
+SELECT customer_id, name, city, valid_from, valid_to, is_current
+FROM dim_customer
+ORDER BY valid_from;`,
+        },
+
+        {
+          kind: "prose",
+          markdown: `## 3. Calendar / date dimension
+
+A date dimension (\`dim_date\`) powers BI — it lets you join sparse facts onto a complete calendar and
+slice by month/quarter/weekday. In Postgres you don't need a recursive CTE (the T-SQL way): just
+\`generate_series\` plus \`EXTRACT\`/\`to_char\` for the attributes.`,
+        },
+        {
+          kind: "sql-runnable",
+          title: "Build a date dimension with generate_series",
+          sql: `SELECT
+    d::date                                AS date,
+    EXTRACT(year   FROM d)::int            AS year,
+    EXTRACT(quarter FROM d)::int           AS quarter,
+    EXTRACT(month  FROM d)::int            AS month,
+    to_char(d, 'Dy')                       AS weekday,
+    EXTRACT(isodow FROM d) IN (6, 7)       AS is_weekend
+FROM generate_series('2026-01-01', '2026-01-07', '1 day'::interval) AS d
+ORDER BY d;`,
+        },
+
+        {
+          kind: "prose",
+          markdown: `## 4. Dynamic pivot
+
+Postgres has **no \`PIVOT\` operator**. For a **fixed** set of columns you use \`FILTER\` (see the *Pivot &
+Unpivot* lesson). For a **dynamic** set (you don't know the categories ahead of time), the interview
+answer is: **generate the pivot SQL as a string**, then run it with \`EXECUTE\` inside a PL/pgSQL function.
+Here's the generation step — note how \`format(%L, …)\` safely quotes literals and \`%I\` quotes identifiers:`,
+        },
+        {
+          kind: "sql-runnable",
+          title: "Generate a pivot query dynamically",
+          sql: `SELECT 'SELECT '
+    || string_agg(
+         format('SUM(total) FILTER (WHERE status = %L) AS %I', status, status),
+         ', ' ORDER BY status)
+    || ' FROM orders' AS generated_sql
+FROM (SELECT DISTINCT status FROM orders) s;`,
+        },
+        {
+          kind: "prose",
+          markdown: `In a function you'd wrap it as \`EXECUTE (that string)\` (or \`RETURN QUERY EXECUTE …\`). The other option
+is \`crosstab()\` from the \`tablefunc\` extension — terser, but it needs the extension installed and an
+explicit column list, so it isn't always available (it isn't in this browser engine).`,
+        },
+
+        {
+          kind: "prose",
+          markdown: `## Graded exercises`,
+        },
+        {
+          kind: "sql-challenge",
+          title: "Incremental load from a watermark",
+          prompt:
+            "The last load watermark is `2025-06-01`. Return `id` and `created_at` for the `orders` that have been created **after** the watermark (`created_at > '2025-06-01'`), ordered by `id`.",
+          starterSql:
+            "SELECT id, created_at\nFROM orders\n-- only rows past the watermark\nORDER BY id;",
+          solution:
+            "SELECT id, created_at FROM orders WHERE created_at > '2025-06-01' ORDER BY id;",
+          ordered: true,
+          hints: ["`WHERE created_at > '2025-06-01'` — in a real pipeline the literal is `(SELECT MAX(last_loaded) FROM load_audit)`."],
+          xp: 70,
+        },
+        {
+          kind: "sql-challenge",
+          title: "Build a 5-day date dimension",
+          prompt:
+            "Using `generate_series`, return a date dimension for **March 1–5, 2026**: columns `date` (a date) and `dow` (the ISO day-of-week, 1 = Monday … 7 = Sunday), ordered by `date`.",
+          starterSql:
+            "SELECT d::date AS date, /* ISO dow */ \nFROM generate_series( /* start, end, step */ ) AS d\nORDER BY d;",
+          solution:
+            "SELECT d::date AS date, EXTRACT(isodow FROM d)::int AS dow FROM generate_series('2026-03-01','2026-03-05','1 day'::interval) AS d ORDER BY d;",
+          ordered: true,
+          hints: [
+            "`generate_series('2026-03-01','2026-03-05','1 day'::interval)`.",
+            "`EXTRACT(isodow FROM d)::int` gives 1–7 (Mon–Sun).",
+          ],
+          xp: 80,
+        },
+      ],
+    },
   ],
 };

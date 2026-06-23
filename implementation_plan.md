@@ -106,7 +106,13 @@ exercises. Local-first; deployment later.
       vs DENSE_RANK; UNION vs UNION ALL; DELETE/TRUNCATE/ON CONFLICT/MERGE; index-type choice; array
       vs join-table vs JSONB; JSONB vs JSON vs columns; view vs matview vs CTE; NOT IN vs NOT EXISTS
       vs LEFT JOIN IS NULL) — each with concrete cues, the *why*, and a one-line rule of thumb
-- [x] **PostgreSQL module** (27 lessons covering all 26 `concepts.md` sections): SELECT/
+- [x] **Data Engineering & ETL Patterns** lesson (covers the DE/ETL gaps from "advanced SQL
+      patterns" cheat-sheets, which are usually T-SQL): a **T-SQL→PostgreSQL translation table** +
+      a coverage map of the 20 common patterns; **incremental load** (high-water-mark), **SCD Type 2**
+      (close current + insert new version via writable CTE), **calendar/date dimension**
+      (generate_series + EXTRACT), and **dynamic pivot** (generate pivot SQL with string_agg/format,
+      run via EXECUTE; crosstab caveat); 2 graded exercises. All verified in PGlite
+- [x] **PostgreSQL module** (28 lessons covering all 26 `concepts.md` sections): SELECT/
       WHERE, JOINs (+LATERAL), GROUP BY/HAVING/FILTER/percentiles, CASE, subqueries/EXISTS,
       CTEs (+recursive), window functions, set ops, INSERT/UPDATE/DELETE/UPSERT,
       transactions, DDL/constraints, indexes/EXPLAIN, arrays, JSONB, views/matviews,
